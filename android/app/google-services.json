@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "751295927214",
+    "project_id": "intercomsecurity",
+    "storage_bucket": "intercomsecurity.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:751295927214:android:d52752e41f5899f021ee3f",
+        "android_client_info": {
+          "package_name": "com.example.managing_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApdpGy3veHYWXcFbgy9fEQzp0EuPed3n4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
