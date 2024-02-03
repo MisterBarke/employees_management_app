@@ -9,10 +9,15 @@ import 'package:managing_app/widgets/dialogs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Client {
+  String userId;
   String client;
   String salary;
   String id;
-  Client({required this.client, required this.salary, required this.id});
+  Client(
+      {required this.client,
+      required this.salary,
+      required this.id,
+      required this.userId});
 }
 
 class AddClients extends StatefulWidget {
@@ -52,6 +57,16 @@ class _AddClientsState extends State<AddClients> {
       return cachedTotal;
     } else {
       return 0; // Default value if total is not found in cache
+    }
+  }
+
+  Future<String> getUserId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? cachedUserId = prefs.getString('cachedUserId');
+    if (cachedUserId != null) {
+      return cachedUserId;
+    } else {
+      return '';
     }
   }
 
@@ -113,6 +128,7 @@ class _AddClientsState extends State<AddClients> {
   Future<bool> postClientsData(Client client) async {
     try {
       final createClient = Clients(
+          userId: client.userId,
           client: client.client,
           salary: int.parse(client.salary),
           id: client.id);
@@ -195,8 +211,11 @@ class _AddClientsState extends State<AddClients> {
                 } else {
                   salary = int.parse(newSalaryController.text);
                 }
-                client =
-                    Clients(client: clientName, salary: salary, id: client.id);
+                client = Clients(
+                    client: clientName,
+                    salary: salary,
+                    id: client.id,
+                    userId: await getUserId());
                 await fetchSalary();
                 await apiService.editClient(client.id, client);
                 await fetchClientsData();
@@ -304,6 +323,7 @@ class _AddClientsState extends State<AddClients> {
                           },
                           onPressed2: () async {
                             client = Client(
+                                userId: await getUserId(),
                                 client: _clientController.text,
                                 salary: _salaryController.text,
                                 id: uuid.v4());

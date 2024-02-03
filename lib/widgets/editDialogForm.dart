@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:managing_app/api/apiService.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:managing_app/widgets/dialogs.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditDialogForm extends StatefulWidget {
   final TextEditingController nameController;
@@ -64,6 +65,16 @@ class _EditDialogFormState extends State<EditDialogForm> {
     } catch (error) {
       print('Error uploading image: $error');
       // Handle the error, show a message to the user, or log it for further investigation
+    }
+  }
+
+  Future<String> getUserId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? cachedUserId = prefs.getString('cachedUserId');
+    if (cachedUserId != null) {
+      return cachedUserId;
+    } else {
+      return '';
     }
   }
 
@@ -175,6 +186,7 @@ class _EditDialogFormState extends State<EditDialogForm> {
 
         // Effectuez la mise à jour côté serveur
         final updatedEmployee = Employee(
+          userId: await getUserId(),
           id: widget.employee.id,
           salary: newSalary,
           nom: newName,

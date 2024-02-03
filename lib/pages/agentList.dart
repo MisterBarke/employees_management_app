@@ -35,10 +35,20 @@ class _AgentListState extends State<AgentList> {
     }
   }
 
+  Future<String> getUserId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? cachedUserId = prefs.getString('cachedUserId');
+    if (cachedUserId != null) {
+      return cachedUserId;
+    } else {
+      return '';
+    }
+  }
+
   // final url = "https://jsonplaceholder.typicode.com/posts";
   Future<void> fetchEmployees() async {
     try {
-      final data = await apiService.fetchData('employee');
+      final data = await apiService.fetchData(await getUserId());
 
       if (data != null) {
         final List<dynamic> employeesData = data["employees"];

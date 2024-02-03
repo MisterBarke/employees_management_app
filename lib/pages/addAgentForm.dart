@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:managing_app/widgets/dialogs.dart';
 import 'package:managing_app/widgets/notificationPopup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ class Person {
   String number;
   String picture;
   String region;
+  String userId;
 
   Person(
       {required this.name,
@@ -26,6 +28,7 @@ class Person {
       required this.number,
       required this.office,
       required this.picture,
+      required this.userId,
       required this.region});
 }
 
@@ -96,9 +99,20 @@ class _AddAgentFormState extends State<AddAgentForm> {
     }
   }
 
+  Future<String> getUserId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? cachedUserId = prefs.getString('cachedUserId');
+    if (cachedUserId != null) {
+      return cachedUserId;
+    } else {
+      return '';
+    }
+  }
+
   Future<bool> postEmployee(Person person) async {
     try {
       final employee = Employee(
+        userId: await getUserId(),
         nom: person.name,
         phone: int.parse(person.number),
         company: person.office,
@@ -124,7 +138,7 @@ class _AddAgentFormState extends State<AddAgentForm> {
 
   Future<void> fetchClientsData() async {
     try {
-      final data = await apiService.fetchClients('clients');
+      final data = await apiService.fetchClients(await getUserId());
       final List<dynamic> clientsData = data['clients'];
 
       setState(() {
@@ -134,7 +148,7 @@ class _AddAgentFormState extends State<AddAgentForm> {
         print(clients);
       });
     } catch (e) {
-      throw Exception('Check your network');
+      print('check your network');
     }
   }
 
@@ -309,6 +323,7 @@ class _AddAgentFormState extends State<AddAgentForm> {
                               //edited
                               if (_formKey.currentState!.validate()) {
                                 person = Person(
+                                    userId: await getUserId(),
                                     name: _nameController.text,
                                     salary: _salaryController.text,
                                     number: _numberController.text,

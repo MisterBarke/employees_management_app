@@ -3,6 +3,7 @@ import 'package:http/http.dart';
 import 'dart:convert';
 
 class Employee {
+  final String userId;
   final String id;
   final String nom;
   final int phone;
@@ -18,21 +19,24 @@ class Employee {
       required this.region,
       required this.picture,
       required this.salary,
+      required this.userId,
       required this.id});
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
-      id: json['_id'] ?? '',
-      nom: json['nom'] ?? '',
-      phone: json['phone'] ?? 0,
-      salary: json['salary'] ?? '',
-      company: json['company'] ?? '',
-      region: json['region'] ?? '',
-      picture: json['picture'] ?? '',
+      userId: json['_userId'],
+      id: json['_id'],
+      nom: json['nom'],
+      phone: json['phone'],
+      salary: json['salary'],
+      company: json['company'],
+      region: json['region'],
+      picture: json['picture'],
     );
   }
   Map<String, dynamic> toJson() {
     return {
+      '_userId': userId,
       '_id': id,
       'nom': nom,
       'salary': salary,
@@ -45,21 +49,58 @@ class Employee {
 }
 
 class Clients {
+  final String userId;
   final String client;
   final int salary;
   final String id;
 
-  Clients({required this.client, required this.salary, required this.id});
+  Clients(
+      {required this.client,
+      required this.salary,
+      required this.id,
+      required this.userId});
 
   factory Clients.fromJson(Map<String, dynamic> json) {
     return Clients(
-        salary: json['salary'] ?? 0,
-        client: json['client'] ?? '',
-        id: json['_id'] ?? '');
+        userId: json['_userId'],
+        salary: json['salary'],
+        client: json['client'],
+        id: json['_id']);
   }
 
   Map<String, dynamic> toJson() {
     return {'_id': id, 'salary': salary, 'client': client};
+  }
+}
+
+class Users {
+  final String userName;
+  final String userEmail;
+  final String userId;
+  final String userPicture;
+
+  Users(
+      {required this.userName,
+      required this.userEmail,
+      required this.userId,
+      required this.userPicture});
+
+  factory Users.fromJson(Map<String, dynamic> json) {
+    return Users(
+      userName: json['userName'],
+      userEmail: json['userEmail'],
+      userId: json['_userId'],
+      userPicture: json['userPicture'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_userId': userId,
+      'userEmail': userEmail,
+      'userName': userName,
+      'userPicture': userPicture
+    };
   }
 }
 
@@ -68,8 +109,8 @@ class ApiService {
 
   ApiService(this.url);
 
-  Future<dynamic> fetchData(String endpoint) async {
-    final response = await get(Uri.parse('$url/$endpoint'));
+  Future<dynamic> fetchData(String userId) async {
+    final response = await get(Uri.parse('$url/employees/$userId'));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -79,7 +120,7 @@ class ApiService {
   }
 
   Future<dynamic> postEmployee(Employee employee) async {
-    final response = await post(Uri.parse('$url/employee'),
+    final response = await post(Uri.parse('$url/employees'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(employee.toJson()));
     if (response.statusCode == 201) {
@@ -100,7 +141,7 @@ class ApiService {
     }
   } */
   Future<bool> deleteEmployee(String employeeId) async {
-    final response = await delete(Uri.parse('$url/employee/$employeeId'),
+    final response = await delete(Uri.parse('$url/employees/$employeeId'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -118,7 +159,7 @@ class ApiService {
   Future<dynamic> editEmployee(String employeeId, Employee employee) async {
     try {
       final response = await put(
-        Uri.parse('$url/employee/$employeeId'),
+        Uri.parse('$url/employees/$employeeId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(employee.toJson()),
       );
@@ -133,9 +174,9 @@ class ApiService {
     }
   }
 
-  Future<dynamic> fetchClients(String endpoint) async {
+  Future<dynamic> fetchClients(String userId) async {
     try {
-      final response = await get(Uri.parse('$url/$endpoint'));
+      final response = await get(Uri.parse('$url/clients/$userId'));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else if (response.statusCode == 404) {
@@ -163,8 +204,8 @@ class ApiService {
     }
   }
 
-  Future<dynamic> fetchTotalSalary(String endpoint) async {
-    final response = await get(Uri.parse('$url/$endpoint'));
+  Future<dynamic> fetchTotalSalary() async {
+    final response = await get(Uri.parse('$url/totalsalary'));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -202,6 +243,19 @@ class ApiService {
       }
     } catch (err) {
       print('Error updating client: $err');
+    }
+  }
+
+  Future<dynamic> createUser(Users user) async {
+    try {
+      final response = await post(Uri.parse('$url/user'),
+          headers: {'content-Type': 'application/json'},
+          body: jsonEncode(user.toJson()));
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      print('an error has occured');
     }
   }
 }
