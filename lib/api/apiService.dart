@@ -69,7 +69,7 @@ class Clients {
   }
 
   Map<String, dynamic> toJson() {
-    return {'_id': id, 'salary': salary, 'client': client};
+    return {'_id': id, 'salary': salary, 'client': client, '_userId': userId};
   }
 }
 
@@ -110,23 +110,27 @@ class ApiService {
   ApiService(this.url);
 
   Future<dynamic> fetchData(String userId) async {
-    final response = await get(Uri.parse('$url/employees/$userId'));
+    try {
+      final response = await get(Uri.parse('$url/employees/$userId'));
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load data');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      throw Exception('Network error');
     }
   }
 
   Future<dynamic> postEmployee(Employee employee) async {
-    final response = await post(Uri.parse('$url/employees'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(employee.toJson()));
-    if (response.statusCode == 201) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to post data');
+    try {
+      final response = await post(Uri.parse('$url/employees'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(employee.toJson()));
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      throw Exception('Network error');
     }
   }
 
@@ -141,17 +145,21 @@ class ApiService {
     }
   } */
   Future<bool> deleteEmployee(String employeeId) async {
-    final response = await delete(Uri.parse('$url/employees/$employeeId'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{'_id': employeeId}));
+    try {
+      final response = await delete(Uri.parse('$url/employees/$employeeId'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode(<String, String>{'_id': employeeId}));
 
-    if (response.statusCode == 200) {
-      print('Employee deleted successfully');
-      return true;
-    } else {
-      print('Failed to delete employee');
+      if (response.statusCode == 200) {
+        print('Employee deleted successfully');
+        return true;
+      } else {
+        print('Failed to delete employee');
+        return false;
+      }
+    } catch (e) {
       return false;
     }
   }
@@ -170,7 +178,7 @@ class ApiService {
         throw Exception('Failed to update employee');
       }
     } catch (err) {
-      print('Error updating employee: $err');
+      throw Exception('Error updating employee: $err');
     }
   }
 
@@ -194,6 +202,7 @@ class ApiService {
       final response = await post(Uri.parse('$url/clients'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(clients.toJson()));
+      print(response.statusCode);
       if (response.statusCode == 201) {
         return jsonDecode(response.body);
       } else {
@@ -204,27 +213,36 @@ class ApiService {
     }
   }
 
-  Future<dynamic> fetchTotalSalary() async {
-    final response = await get(Uri.parse('$url/totalsalary'));
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load data');
+  Future<dynamic> fetchTotalSalary(String userId) async {
+    try {
+      final response = await get(Uri.parse('$url/clients/$userId/totalSalary'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to load data');
+      }
+    } catch (e) {
+      throw Exception('Network issue');
     }
   }
 
   Future<dynamic> deleteClient(String clientId) async {
-    final response = await delete(Uri.parse('$url/clients/$clientId'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{'_id': clientId}));
+    try {
+      final response = await delete(Uri.parse('$url/clients/$clientId'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode(<String, String>{'_id': clientId}));
 
-    if (response.statusCode == 200) {
-      print('Client deleted successfully');
-    } else {
-      print('Failed to delete client');
+      if (response.statusCode == 200) {
+        print('Client deleted successfully');
+        return true;
+      } else {
+        print('Failed to delete client');
+        return true;
+      }
+    } catch (e) {
+      return false;
     }
   }
 
@@ -238,11 +256,13 @@ class ApiService {
 
       if (response.statusCode == 200) {
         print('Client updated successfully');
+        return true;
       } else {
-        throw Exception('Failed to update client');
+        return false;
       }
     } catch (err) {
       print('Error updating client: $err');
+      return false;
     }
   }
 
@@ -253,6 +273,8 @@ class ApiService {
           body: jsonEncode(user.toJson()));
       if (response.statusCode == 201) {
         return jsonDecode(response.body);
+      } else {
+        return;
       }
     } catch (e) {
       print('an error has occured');

@@ -109,18 +109,15 @@ class _AgentListState extends State<AgentList> {
             employee: employee,
             onUpdate: (updatedEmployee) async {
               try {
-                final editEmployeeData =
-                    await apiService.editEmployee(employee.id, updatedEmployee);
-                if (editEmployeeData) {
-                  CustomSnackBar.show(context, 'Agent modifier avec succès');
-                  fetchEmployees();
-                } else {
-                  CustomSnackBar.show(
-                      context, "Une erreur est survenue lors de l'édition.");
-                }
+                await apiService.editEmployee(employee.id, updatedEmployee);
+                await fetchEmployees();
+                CustomSnackBar.show(context, 'Agent modifier avec succès');
               } catch (e) {
                 CustomSnackBar.show(
                     context, "Une erreur est survenue lors de l'éditiondd.");
+              } finally {
+                // Close the dialog after the asynchronous operations complete
+                Navigator.of(context).pop();
               }
             });
       },
@@ -137,6 +134,7 @@ class _AgentListState extends State<AgentList> {
     }
   }
 
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // You can also fetch data here if needed

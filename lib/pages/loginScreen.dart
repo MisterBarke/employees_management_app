@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:managing_app/api/apiService.dart';
 import 'package:managing_app/home.dart';
+import 'package:managing_app/widgets/notificationPopup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserInfos {
@@ -110,7 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         // Envoi des informations au serveur
+        //il faut checker si les infos sont bien reçu avant de faire la redirection
         await postClient(userInfos);
+
         //userId may not remain the same after another session
         setState(() {
           saveUserId(userId);
@@ -127,9 +130,14 @@ class _LoginScreenState extends State<LoginScreen> {
             builder: (context) => HomePage(),
           ),
         );
+      } else {
+        CustomSnackBarError.show(
+            context, 'Erreur, verifiez votre connexion internet');
       }
     } catch (e) {
       print('Exception: $e');
+      CustomSnackBarError.show(
+          context, 'Erreur, verifiez votre connexion internet');
     }
   }
 
@@ -141,29 +149,22 @@ class _LoginScreenState extends State<LoginScreen> {
         future: checkCurrentUser(),
         builder: (context, AsyncSnapshot<User?> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
+            return const Center(
+              //doesn't work
               child: CircularProgressIndicator(),
             );
           } else {
             if (snapshot.hasData && snapshot.data != null) {
               // User is already authenticated
-              return HomePage();
+              return const HomePage();
             } else {
               // User is not authenticated, show login button
               return Center(
-                child: Card(
-                  elevation: 5,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: IconButton(
-                    iconSize: 40,
-                    icon: Icon(Icons.golf_course),
+                child: ElevatedButton(
                     onPressed: () async {
                       signInWithGoogle(context); // Pass the context
                     },
-                  ),
-                ),
+                    child: Text('Se connecter avec google')),
               );
             }
           }

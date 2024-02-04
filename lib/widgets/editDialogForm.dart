@@ -36,6 +36,7 @@ class _EditDialogFormState extends State<EditDialogForm> {
   String _imageUrl = '';
   final ImagePicker _picker = ImagePicker();
   final FirebaseStorage _storage = FirebaseStorage.instance;
+
   Future<void> _pickImage() async {
     try {
       final XFile? pickedImage =
@@ -78,7 +79,6 @@ class _EditDialogFormState extends State<EditDialogForm> {
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     return FormDialog(
       title: 'Modifier l\'agent',
@@ -183,7 +183,7 @@ class _EditDialogFormState extends State<EditDialogForm> {
         } else {
           newPicture = _imageUrl;
         }
-
+// notification here
         // Effectuez la mise à jour côté serveur
         final updatedEmployee = Employee(
           userId: await getUserId(),
@@ -199,7 +199,7 @@ class _EditDialogFormState extends State<EditDialogForm> {
         widget.onUpdate(updatedEmployee);
 
         // Fermez la boîte de dialogue
-        Navigator.of(context).pop();
+        // Navigator.of(context).pop();
       },
     );
   }

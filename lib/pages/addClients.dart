@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:managing_app/widgets/notificationPopup.dart';
 import 'package:uuid/uuid.dart';
 import 'package:managing_app/api/apiService.dart';
 import 'package:managing_app/widgets/dialogs.dart';
@@ -89,12 +90,12 @@ class _AddClientsState extends State<AddClients> {
     try {
       List<Clients> cachedClients = await loadFromCache();
 
-      if (cachedClients.isNotEmpty && clients.isEmpty) {
+      if (clients.isEmpty) {
         setState(() {
           clients = cachedClients;
         });
       } else {
-        final data = await apiService.fetchClients('clients');
+        final data = await apiService.fetchClients(await getUserId());
         final List<dynamic> clientsData = data['clients'];
 
         setState(() {
@@ -114,14 +115,17 @@ class _AddClientsState extends State<AddClients> {
 
   Future<void> fetchSalary() async {
     try {
-      final data = await apiService.fetchData('clients/totalsalary');
+      final data = await apiService.fetchTotalSalary(await getUserId());
+      print('data herefgfgffg');
+      print(data);
       final totalSalary = data['salary'];
+      print(totalSalary);
       setState(() {
         total = totalSalary;
         saveTotalToCache(total);
       });
     } catch (error) {
-      print('Error fetching employees: $error');
+      print('Error fetching clients: $error');
     }
   }
 
@@ -133,6 +137,7 @@ class _AddClientsState extends State<AddClients> {
           salary: int.parse(client.salary),
           id: client.id);
       await apiService.postClient(createClient);
+
       return true;
     } catch (e) {
       print('Network Error $e');
@@ -152,76 +157,89 @@ class _AddClientsState extends State<AddClients> {
   }
 
   Future<void> editClient(Clients client) async {
-    final TextEditingController newClientNameController =
-        TextEditingController();
-    final TextEditingController newSalaryController = TextEditingController();
-    await showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return FormDialog(
-              title: 'Moifier un client',
-              dialogContent: SizedBox(
-                  height: 150,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        controller: newClientNameController,
-                        decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(
-                              Icons.add_business,
-                              color: Color(0xFF3086D7),
-                            ),
-                            labelText: "Nom du client"),
-                      ),
-                      const SizedBox(height: 10),
-                      TextFormField(
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))
-                        ],
-                        controller: newSalaryController,
-                        decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(
-                              Icons.money,
-                              color: Color(0xFF3086D7),
-                            ),
-                            labelText: "Salaire"),
-                      ),
-                    ],
-                  )),
-              textBtnChild1: 'Annuler',
-              textBtnChild2: 'Confirmer',
-              onPressed1: () {
-                Navigator.pop(context);
-              },
-              onPressed2: () async {
-                int salary;
-                String clientName;
-                if (newClientNameController.text.isEmpty) {
-                  clientName = client.client;
-                } else {
-                  clientName = newClientNameController.text;
-                }
-                RegExp regex = RegExp(r'^[0-9]+$');
-                if (newSalaryController.text.isEmpty ||
-                    !regex.hasMatch(newSalaryController.text)) {
-                  salary = client.salary;
-                } else {
-                  salary = int.parse(newSalaryController.text);
-                }
-                client = Clients(
-                    client: clientName,
-                    salary: salary,
-                    id: client.id,
-                    userId: await getUserId());
-                await fetchSalary();
-                await apiService.editClient(client.id, client);
-                await fetchClientsData();
-                Navigator.of(context).pop();
-              });
-        });
+    try {
+      final TextEditingController newClientNameController =
+          TextEditingController();
+      final TextEditingController newSalaryController = TextEditingController();
+      await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return FormDialog(
+                title: 'Moifier un client',
+                dialogContent: SizedBox(
+                    height: 150,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: newClientNameController,
+                          decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(
+                                Icons.add_business,
+                                color: Color(0xFF3086D7),
+                              ),
+                              labelText: "Nom du client"),
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))
+                          ],
+                          controller: newSalaryController,
+                          decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(
+                                Icons.money,
+                                color: Color(0xFF3086D7),
+                              ),
+                              labelText: "Salaire"),
+                        ),
+                      ],
+                    )),
+                textBtnChild1: 'Annuler',
+                textBtnChild2: 'Confirmer',
+                onPressed1: () {
+                  Navigator.pop(context);
+                },
+                onPressed2: () async {
+                  int salary;
+                  String clientName;
+                  if (newClientNameController.text.isEmpty) {
+                    clientName = client.client;
+                  } else {
+                    clientName = newClientNameController.text;
+                  }
+                  RegExp regex = RegExp(r'^[0-9]+$');
+                  if (newSalaryController.text.isEmpty ||
+                      !regex.hasMatch(newSalaryController.text)) {
+                    salary = client.salary;
+                  } else {
+                    salary = int.parse(newSalaryController.text);
+                  }
+                  client = Clients(
+                      client: clientName,
+                      salary: salary,
+                      id: client.id,
+                      userId: await getUserId());
+                  await fetchSalary();
+                  final editedClient =
+                      await apiService.editClient(client.id, client);
+                  if (editedClient) {
+                    CustomSnackBar.show(
+                        context, 'Client supprimer avec succès');
+                  } else {
+                    CustomSnackBarError.show(context,
+                        "Erreur lors de l'edition, verifiez votre connexion internet");
+                  }
+                  await fetchClientsData();
+                  Navigator.of(context).pop();
+                });
+          });
+    } catch (e) {
+      CustomSnackBarError.show(context,
+          "Erreur lors de l'edition, verifiez votre connexion internet");
+    }
   }
 
   @override
@@ -329,11 +347,17 @@ class _AddClientsState extends State<AddClients> {
                                 id: uuid.v4());
 
                             bool postSuccess = await postClientsData(client);
+                            print(postSuccess);
                             if (postSuccess) {
                               fetchClientsData();
                               fetchSalary();
                               _clientController.clear();
                               _salaryController.clear();
+                              CustomSnackBar.show(
+                                  context, 'Client Ajouter avec succès');
+                            } else {
+                              CustomSnackBarError.show(context,
+                                  'Erreur, verifiez votre connexion internet');
                             }
                             Navigator.pop(context);
                           });
@@ -438,12 +462,24 @@ class _AddClientsState extends State<AddClients> {
                                                     ),
                                                     TextButton(
                                                       onPressed: () async {
-                                                        Navigator.of(context)
-                                                            .pop();
-                                                        deleteClient(client);
+                                                        final bool
+                                                            deletedClient =
+                                                            await deleteClient(
+                                                                client);
+                                                        if (deletedClient) {
+                                                          CustomSnackBar.show(
+                                                              context,
+                                                              'Client supprimer avec succès');
+                                                        } else {
+                                                          CustomSnackBarError.show(
+                                                              context,
+                                                              'Client non supprimer, verifiez votre connexion internet');
+                                                        }
                                                         setState(() {
                                                           fetchClientsData();
                                                           fetchSalary();
+                                                          Navigator.of(context)
+                                                              .pop();
                                                         });
                                                       },
                                                       child: Text('Supprimer'),
