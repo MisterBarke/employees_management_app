@@ -149,6 +149,8 @@ class _AddAgentFormState extends State<AddAgentForm> {
       });
     } catch (e) {
       print('check your network');
+      CustomSnackBarError.show(context,
+          'Impossible de chargé la liste des clients, verifiez votre connexion internet');
     }
   }
 
