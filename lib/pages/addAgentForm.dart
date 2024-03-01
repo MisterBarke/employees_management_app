@@ -67,35 +67,56 @@ class _AddAgentFormState extends State<AddAgentForm> {
   String _imageUrl = '';
   final ImagePicker _picker = ImagePicker();
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  var pickedImg;
+  bool _isLoading = false;
+
   Future<void> _pickImage() async {
     try {
       final XFile? pickedImage =
           await _picker.pickImage(source: ImageSource.gallery);
+      setState(() {
+        pickedImg = pickedImage;
+      });
 
       if (pickedImage == null) {
         // User canceled image picking
         return;
       }
-
-      Reference storageReference =
-          _storage.ref().child('employees/${DateTime.now()}.png');
-      UploadTask uploadTask = storageReference.putFile(File(pickedImage.path));
-
-      TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() async {
-        // Retrieve the download URL of the image
-        String downloadUrl = await storageReference.getDownloadURL();
-
-        setState(() {
-          _image = File(pickedImage.path);
-          _imageUrl = downloadUrl;
-          // Store the image URL in _imageUrl
-        });
+      setState(() {
+        _image = File(pickedImage.path);
       });
+
 //Download URL: ${taskSnapshot.ref.getDownloadURL()} to get the image url in the console
       print('Image uploaded successfully.');
     } catch (error) {
       print('Error uploading image: $error');
       // Handle the error, show a message to the user, or log it for further investigation
+    }
+  }
+
+  Future<void> uploadImage(pickedImg) async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      Reference storageReference =
+          _storage.ref().child('employees/${DateTime.now()}.png');
+      UploadTask uploadTask = storageReference.putFile(File(pickedImg.path));
+
+      TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() async {
+        // Retrieve the download URL of the image
+
+        String downloadUrl = await storageReference.getDownloadURL();
+        setState(() {
+          _imageUrl = downloadUrl;
+          _isLoading = false;
+        });
+      });
+    } catch (e) {
+      print('Something went wrongwhen uploading');
+      print(e);
+    } finally {
+      _isLoading = false;
     }
   }
 
@@ -177,183 +198,193 @@ class _AddAgentFormState extends State<AddAgentForm> {
         ),
         backgroundColor: Colors.white,
         body: SingleChildScrollView(
-            child: Container(
-          height: 1000,
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 20),
-                height: 200,
-                width: 200,
-                decoration: BoxDecoration(
-                    border: Border.all(
-                        color: const Color(0xFF3086D7),
-                        width: 4.0,
-                        style: BorderStyle.solid),
-                    borderRadius: const BorderRadius.all(Radius.circular(10))),
-                child: _image == null
-                    ? const Text('No image Selected')
-                    : Image.file(_image!),
-              ),
-              const SizedBox(height: 50),
-              ElevatedButton(
-                  onPressed: () {
-                    _pickImage();
-                  },
-                  child: const Text(
-                    'Choose a picture',
-                    style: TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.bold),
-                  )),
-              Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(
-                                Icons.person,
-                                color: Color(0xFF3086D7),
-                              ),
-                              labelText: "Nom de l'agent"),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer le nom';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 5),
-                        TextFormField(
-                          controller: _regionController,
-                          decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(
-                                Icons.place,
-                                color: Color(0xFF3086D7),
-                              ),
-                              labelText: "Region de l'agent"),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer la region';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 5),
-                        TextFormField(
-                          keyboardType: TextInputType.number,
-                          controller: _numberController,
-                          decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(
-                                Icons.phone,
-                                color: Color(0xFF3086D7),
-                              ),
-                              labelText: "Numero de l'agent"),
-                          validator: (value) {
-                            RegExp regex = RegExp(r'^[0-9]+$');
-                            if (value == null ||
-                                value.isEmpty ||
-                                !regex.hasMatch(value)) {
-                              return 'Veuillez entrer le numero de tel';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 5),
-                        DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(
-                              Icons.work,
-                              color: Color(0xFF3086D7),
-                            ),
-                            labelText: "Lieu de garde de l'agent",
-                          ),
-                          value:
-                              _selectedLocation, // Assurez-vous de définir _selectedLocation dans l'état de votre widget
-                          items: clients.map((client) {
-                            return DropdownMenuItem<String>(
-                              value: client
-                                  .client, // Assurez-vous que votre modèle Client a une propriété "nom" ou similaire
-                              child: Text(client
-                                  .client), // Assurez-vous que votre modèle Client a une propriété "nom" ou similaire
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            // Mettez à jour l'état avec la valeur sélectionnée
-                            setState(() {
-                              _selectedLocation = value;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez sélectionner un lieu';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 5),
-                        TextFormField(
-                          keyboardType: TextInputType.number,
-                          controller: _salaryController,
-                          decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(
-                                Icons.money_sharp,
-                                color: Color(0xFF3086D7),
-                              ),
-                              labelText: "Salaire de l'agent"),
-                          validator: (value) {
-                            RegExp regex = RegExp(r'^[0-9]+$');
-                            if (value == null ||
-                                value.isEmpty ||
-                                !regex.hasMatch(value)) {
-                              return 'Veuillez entrer le salaire';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 40),
-                        ElevatedButton(
-                            onPressed: () async {
-                              //edited
-                              if (_formKey.currentState!.validate()) {
-                                person = Person(
-                                    userId: await getUserId(),
-                                    name: _nameController.text,
-                                    salary: _salaryController.text,
-                                    number: _numberController.text,
-                                    office: _selectedLocation as String,
-                                    picture: _imageUrl,
-                                    region: _regionController.text);
-                                // people.add(person);
-                                //appState.addPerson(person);
-
-                                _nameController.clear();
-                                _numberController.clear();
-                                _salaryController.clear();
-                                _officeController.clear();
-                                _regionController.clear();
-
-                                await postEmployee(person);
+            child: Stack(children: [
+          Container(
+            height: 1000,
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 20),
+                  height: 200,
+                  width: 200,
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                          color: const Color(0xFF3086D7),
+                          width: 4.0,
+                          style: BorderStyle.solid),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10))),
+                  child: _image == null
+                      ? const Text('No image Selected')
+                      : Image.file(_image!),
+                ),
+                const SizedBox(height: 50),
+                ElevatedButton(
+                    onPressed: () {
+                      _pickImage();
+                    },
+                    child: const Text(
+                      'Choose a picture',
+                      style: TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.bold),
+                    )),
+                Container(
+                    padding: const EdgeInsets.all(20),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(
+                                  Icons.person,
+                                  color: Color(0xFF3086D7),
+                                ),
+                                labelText: "Nom de l'agent"),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez entrer le nom';
                               }
+                              return null;
                             },
-                            child: const Text('Valider',
-                                style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold))),
-                        const SizedBox(height: 70)
-                      ],
-                    ),
-                  ))
-            ],
+                          ),
+                          const SizedBox(height: 5),
+                          TextFormField(
+                            controller: _regionController,
+                            decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(
+                                  Icons.place,
+                                  color: Color(0xFF3086D7),
+                                ),
+                                labelText: "Region de l'agent"),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez entrer la region';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 5),
+                          TextFormField(
+                            keyboardType: TextInputType.number,
+                            controller: _numberController,
+                            decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(
+                                  Icons.phone,
+                                  color: Color(0xFF3086D7),
+                                ),
+                                labelText: "Numero de l'agent"),
+                            validator: (value) {
+                              RegExp regex = RegExp(r'^[0-9]+$');
+                              if (value == null ||
+                                  value.isEmpty ||
+                                  !regex.hasMatch(value)) {
+                                return 'Veuillez entrer le numero de tel';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 5),
+                          DropdownButtonFormField<String>(
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(
+                                Icons.work,
+                                color: Color(0xFF3086D7),
+                              ),
+                              labelText: "Lieu de garde de l'agent",
+                            ),
+                            value:
+                                _selectedLocation, // Assurez-vous de définir _selectedLocation dans l'état de votre widget
+                            items: clients.map((client) {
+                              return DropdownMenuItem<String>(
+                                value: client
+                                    .client, // Assurez-vous que votre modèle Client a une propriété "nom" ou similaire
+                                child: Text(client
+                                    .client), // Assurez-vous que votre modèle Client a une propriété "nom" ou similaire
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              // Mettez à jour l'état avec la valeur sélectionnée
+                              setState(() {
+                                _selectedLocation = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez sélectionner un lieu';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 5),
+                          TextFormField(
+                            keyboardType: TextInputType.number,
+                            controller: _salaryController,
+                            decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(
+                                  Icons.money_sharp,
+                                  color: Color(0xFF3086D7),
+                                ),
+                                labelText: "Salaire de l'agent"),
+                            validator: (value) {
+                              RegExp regex = RegExp(r'^[0-9]+$');
+                              if (value == null ||
+                                  value.isEmpty ||
+                                  !regex.hasMatch(value)) {
+                                return 'Veuillez entrer le salaire';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 40),
+                          ElevatedButton(
+                              onPressed: () async {
+                                //edited
+                                await uploadImage(pickedImg);
+                                if (_formKey.currentState!.validate()) {
+                                  person = Person(
+                                      userId: await getUserId(),
+                                      name: _nameController.text,
+                                      salary: _salaryController.text,
+                                      number: _numberController.text,
+                                      office: _selectedLocation as String,
+                                      picture: _imageUrl,
+                                      region: _regionController.text);
+                                  // people.add(person);
+                                  //appState.addPerson(person);
+
+                                  _nameController.clear();
+                                  _numberController.clear();
+                                  _salaryController.clear();
+                                  _officeController.clear();
+                                  _regionController.clear();
+
+                                  await postEmployee(person);
+                                }
+                              },
+                              child: const Text('Valider',
+                                  style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold))),
+                          const SizedBox(height: 70)
+                        ],
+                      ),
+                    )),
+              ],
+            ),
           ),
-        )));
+          if (_isLoading)
+            Positioned(
+              top: MediaQuery.of(context).size.height / 2 - 20,
+              left: MediaQuery.of(context).size.width / 2 - 20,
+              child: const CircularProgressIndicator(),
+            ),
+        ])));
   }
 }

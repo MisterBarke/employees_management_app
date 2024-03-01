@@ -28,23 +28,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final ApiService apiService = ApiService('https://security-bay.vercel.app');
-/*   Future<dynamic> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      final GoogleSignInAuthentication? googleAuth =
-          await googleUser?.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth?.accessToken,
-        idToken: googleAuth?.idToken,
-      );
-      return await FirebaseAuth.instance.signInWithCredential(credential);
-    } on Exception catch (e) {
-      print('exception->$e');
-    }
-  } */
-
   FirebaseAuth _auth = FirebaseAuth.instance;
+  // final GoogleSignIn _googleSignIn = GoogleSignIn();
+  bool _isLoading = false;
 
   Future<User?> checkCurrentUser() async {
     return _auth.currentUser;
@@ -64,6 +50,16 @@ class _LoginScreenState extends State<LoginScreen> {
     prefs.setString('cachedUserId', userId);
   }
 
+  Future<void> saveUserName(String userName) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('cachedUserName', userName);
+  }
+
+  Future<void> saveUserPhoto(String userPicture) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('cachedUserPicture', userPicture);
+  }
+
   Future<bool> postClient(UserInfos infos) async {
     try {
       final createUsers = Users(
@@ -80,12 +76,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> signInWithGoogle(BuildContext context) async {
+    setState(() {
+      _isLoading = true;
+    });
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
+        setState(() {
+          _isLoading = false;
+        });
         // User canceled the sign-in
         return;
       }
+
       final GoogleSignInAuthentication? googleAuth =
           await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
@@ -99,7 +102,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (currentUser != null) {
         final String displayName = currentUser.displayName as String;
         final String email = currentUser.email as String;
-        //userId may not remain the same after another session
         final String userId = currentUser.uid;
         final String photoURL = currentUser.photoURL as String;
 
@@ -109,14 +111,11 @@ class _LoginScreenState extends State<LoginScreen> {
           userId: userId,
           userPicture: photoURL,
         );
-
-        // Envoi des informations au serveur
-        //il faut checker si les infos sont bien reçu avant de faire la redirection
         await postClient(userInfos);
-
-        //userId may not remain the same after another session
         setState(() {
           saveUserId(userId);
+          saveUserName(displayName);
+          saveUserPhoto(photoURL);
         });
 
         print('User Display Name: $displayName');
@@ -130,14 +129,13 @@ class _LoginScreenState extends State<LoginScreen> {
             builder: (context) => HomePage(),
           ),
         );
-      } else {
-        CustomSnackBarError.show(
-            context, 'Erreur, verifiez votre connexion internet');
       }
     } catch (e) {
       print('Exception: $e');
-      CustomSnackBarError.show(
-          context, 'Erreur, verifiez votre connexion internet');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -145,30 +143,41 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<User?>(
-        future: checkCurrentUser(),
-        builder: (context, AsyncSnapshot<User?> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              //doesn't work
-              child: CircularProgressIndicator(),
-            );
-          } else {
-            if (snapshot.hasData && snapshot.data != null) {
-              // User is already authenticated
-              return const HomePage();
-            } else {
-              // User is not authenticated, show login button
-              return Center(
-                child: ElevatedButton(
-                    onPressed: () async {
-                      signInWithGoogle(context); // Pass the context
-                    },
-                    child: Text('Se connecter avec google')),
-              );
-            }
-          }
-        },
+      body: Stack(
+        children: [
+          FutureBuilder<User?>(
+            future: checkCurrentUser(),
+            builder: (context, AsyncSnapshot<User?> snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  //doesn't work
+                  child: CircularProgressIndicator(),
+                );
+              } else {
+                if (snapshot.hasData && snapshot.data != null) {
+                  // User is already authenticated
+                  return const HomePage();
+                } else {
+                  // User is not authenticated, show login button
+                  return Center(
+                    child: ElevatedButton(
+                        onPressed: () async {
+                          signInWithGoogle(context); // Pass the context
+                        },
+                        child: Text('Se connecter avec google')),
+                  );
+                }
+              }
+            },
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+        ],
       ),
     );
   }

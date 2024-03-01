@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:easy_search_bar/easy_search_bar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:managing_app/api/apiService.dart';
 import 'package:managing_app/pages/loginScreen.dart';
 import 'package:managing_app/widgets/dialogs.dart';
@@ -10,6 +11,7 @@ import 'package:managing_app/widgets/editDialogForm.dart';
 import 'package:managing_app/widgets/employeeCard.dart';
 import 'package:managing_app/widgets/notificationPopup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class AgentList extends StatefulWidget {
   const AgentList({
@@ -25,10 +27,14 @@ class _AgentListState extends State<AgentList> {
   //var _getAllEmployees = [];
   final ApiService apiService = ApiService('https://security-bay.vercel.app');
   late List<Employee> employees = [];
+  String? userName;
+  String? userPicture;
 
-  Future<bool> signOutFromGoogle() async {
+  Future<bool> signOutFromGoogle(BuildContext context) async {
     try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
       await FirebaseAuth.instance.signOut();
+      await googleSignIn.signOut();
       return true;
     } on Exception catch (_) {
       return false;
@@ -42,6 +48,26 @@ class _AgentListState extends State<AgentList> {
       return cachedUserId;
     } else {
       return '';
+    }
+  }
+
+  Future<String> getUserName() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? cachedUserName = prefs.getString('cachedUserName');
+    if (cachedUserName != null) {
+      return cachedUserName;
+    } else {
+      return 'Utilisateur';
+    }
+  }
+
+  Future<String> getUserPicture() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? cachedUserName = prefs.getString('cachedUserPicture');
+    if (cachedUserName != null) {
+      return cachedUserName;
+    } else {
+      return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJtlub9_AAfjJdIO1nkf92yFm5QNhqUbp2ow7GdCLWAgODzCXBgtqObCOeUmRLbftGKh4&usqp=CAU';
     }
   }
 
@@ -124,9 +150,19 @@ class _AgentListState extends State<AgentList> {
     );
   }
 
+  Future<void> fetchUserInfos() async {
+    // Récupérer le nom d'utilisateur
+    userName = await getUserName();
+    userPicture = await getUserPicture();
+    // Mettre à jour l'état pour refléter le changement
+    setState(() {});
+  }
+
   @override
   void initState() {
-    // TODO: implement initState
+    setState(() {
+      fetchUserInfos();
+    });
     super.initState();
     if (employees.isEmpty) {
       fetchEmployees();
@@ -137,8 +173,6 @@ class _AgentListState extends State<AgentList> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // You can also fetch data here if needed
-    // This method is called when dependencies of the widget change (e.g., inherited widgets)
   }
 
   Future<void> _loadCachedData() async {
@@ -179,19 +213,22 @@ class _AgentListState extends State<AgentList> {
                     builder: (BuildContext context) {
                       return FormDialog(
                           title: 'Profile',
-                          dialogContent: Container(
+                          dialogContent: SizedBox(
                             height: 150,
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 CircleAvatar(
-                                  child: Image.network(
+                                  child: Image.network(userPicture ??
                                       'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJtlub9_AAfjJdIO1nkf92yFm5QNhqUbp2ow7GdCLWAgODzCXBgtqObCOeUmRLbftGKh4&usqp=CAU'),
                                 ),
-                                Text("UserName"),
+                                Text(
+                                  userName ?? 'Chargement...',
+                                  style: TextStyle(color: Colors.black),
+                                ),
                                 ElevatedButton(
                                     onPressed: () {
-                                      signOutFromGoogle();
+                                      signOutFromGoogle(context);
                                       setState(() {
                                         Navigator.push(
                                             context,

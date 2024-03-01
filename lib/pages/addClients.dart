@@ -89,22 +89,20 @@ class _AddClientsState extends State<AddClients> {
   Future<void> fetchClientsData() async {
     try {
       List<Clients> cachedClients = await loadFromCache();
+      final data = await apiService.fetchClients(await getUserId());
+      final List<dynamic> clientsData = data['clients'];
 
-      if (clients.isEmpty) {
+      setState(() {
+        clients = clientsData
+            .map((jsonDatas) => Clients.fromJson(jsonDatas))
+            .toList();
+      });
+
+      saveToCache(clients);
+      if (clients.isEmpty && !data) {
         setState(() {
           clients = cachedClients;
         });
-      } else {
-        final data = await apiService.fetchClients(await getUserId());
-        final List<dynamic> clientsData = data['clients'];
-
-        setState(() {
-          clients = clientsData
-              .map((jsonDatas) => Clients.fromJson(jsonDatas))
-              .toList();
-        });
-
-        saveToCache(clients);
       }
 
       print(clients);

@@ -1,6 +1,7 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:managing_app/api/apiService.dart';
+import 'package:managing_app/utility/urlCallLauncher.dart';
 import 'package:managing_app/widgets/notificationPopup.dart';
 
 class EmployeeCard extends StatefulWidget {
@@ -78,7 +79,16 @@ class _EmployeeCardState extends State<EmployeeCard> {
                                         Icon(Icons.phone,
                                             color: Color(0xE42C6CB5)),
                                         TextButton(
-                                            onPressed: () {},
+                                            onPressed: () {
+                                              showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return ContactAppLauncher(
+                                                        phoneNumberUrl:
+                                                            '+227 ${employee.phone.toString()}');
+                                                  });
+                                            },
                                             child: Text(
                                                 '+227 ${employee.phone.toString()}',
                                                 style: const TextStyle(
